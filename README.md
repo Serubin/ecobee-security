@@ -101,9 +101,9 @@ findings through an allowlist, never a blocklist.
 ## Provenance
 
 The protocol was reverse engineered from the ecobee Android app in September 2026 on
-owned hardware and an owned account. Notably: the app pins no certificates, a single
-token covers thermostat, cameras, and alarm with no step-up for security-critical
-mutations, and the delays described above are client-side.
+owned hardware and an owned account. The properties that matter to anyone running this
+are described above: one token covers thermostat, cameras, and alarm, and the delays are
+client-side.
 
 The mutation is sent as captured. The two read documents are not: discovery is a minimal
 query of our own, because the app's pulls the whole device tree including your street
