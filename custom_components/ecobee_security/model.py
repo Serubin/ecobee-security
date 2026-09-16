@@ -106,6 +106,15 @@ class Snapshot:
         return self.desired_armed_state is not None
 
     @property
+    def is_armed(self) -> bool:
+        """Whether the house is in any state that is not plainly disarmed."""
+        return bool(
+            self.is_pending
+            or self.incidents
+            or (self.armed_state and self.armed_state != ARMED_STATE_DISARMED)
+        )
+
+    @property
     def alerting_incident(self) -> Incident | None:
         return next((inc for inc in self.incidents if inc.is_alerting), None)
 

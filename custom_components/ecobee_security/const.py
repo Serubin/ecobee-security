@@ -32,10 +32,16 @@ APP_CLIENT_LIBRARY: Final = {"name": "apollo-kotlin", "version": "4.4.1"}
 CONF_HOME_ID: Final = "home_id"
 CONF_HOME_NAME: Final = "home_name"
 CONF_POLL_INTERVAL: Final = "poll_interval"
+CONF_ARMED_POLL_INTERVAL: Final = "armed_poll_interval"
 CONF_EXIT_DELAY_AWAY: Final = "exit_delay_away"
 CONF_EXIT_DELAY_STAY: Final = "exit_delay_stay"
 
 DEFAULT_POLL_INTERVAL: Final = 60
+
+# An incident cannot be noticed sooner than the poll that finds it, so an armed house is
+# read more often than a disarmed one.
+DEFAULT_ARMED_POLL_INTERVAL: Final = 15
+
 TRANSITION_POLL_INTERVAL: Final = 5
 
 # A live incident is polled fast too: the entry delay is 30s, so the base interval would

@@ -296,3 +296,22 @@ def test_a_countdown_without_a_deadline_still_reports_pending():
     mon = monitoring("ARMED_AWAY")
     mon["incidents"] = [incident("REPORTED")]
     assert panel_state(build_snapshot(mon), NOW)[0] == PanelState.PENDING
+
+
+def test_armed_states_are_recognised_for_polling():
+    for state in ("ARMED_AWAY", "ARMED_STAY", "ARMED"):
+        assert build_snapshot(monitoring(state)).is_armed is True
+    assert build_snapshot(monitoring("DISARMED")).is_armed is False
+
+
+def test_a_pending_arm_counts_as_armed_for_polling():
+    """The exit delay is already the fast path, but it must never fall back to slow."""
+    snap = build_snapshot(monitoring("DISARMED", desired="ARMED_AWAY"))
+    assert snap.is_armed is True
+
+
+def test_a_live_incident_counts_as_armed_even_if_disarmed():
+    """An incident while disarmed — a smoke event, say — must not be polled slowly."""
+    mon = monitoring("DISARMED")
+    mon["incidents"] = [incident("ALERTED")]
+    assert build_snapshot(mon).is_armed is True

@@ -21,11 +21,13 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import EcobeeSecurityApi, EcobeeSecurityError
 from .auth import EcobeeOAuth2Implementation
 from .const import (
+    CONF_ARMED_POLL_INTERVAL,
     CONF_EXIT_DELAY_AWAY,
     CONF_EXIT_DELAY_STAY,
     CONF_HOME_ID,
     CONF_HOME_NAME,
     CONF_POLL_INTERVAL,
+    DEFAULT_ARMED_POLL_INTERVAL,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
     FEATURE_HOME_MONITORING,
@@ -225,6 +227,12 @@ class EcobeeSecurityOptionsFlow(OptionsFlowWithReload):
                         CONF_POLL_INTERVAL,
                         default=options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL),
                     ): vol.All(int, vol.Range(min=15, max=3600)),
+                    vol.Optional(
+                        CONF_ARMED_POLL_INTERVAL,
+                        default=options.get(
+                            CONF_ARMED_POLL_INTERVAL, DEFAULT_ARMED_POLL_INTERVAL
+                        ),
+                    ): vol.All(int, vol.Range(min=5, max=3600)),
                     vol.Optional(
                         CONF_EXIT_DELAY_AWAY,
                         description={

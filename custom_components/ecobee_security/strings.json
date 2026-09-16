@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Sign in to ecobee",
-        "description": "Open this link in a **desktop browser** and sign in to ecobee:\n\n{authorize_url}\n\nUse a desktop browser, not your phone — on Android the link opens the ecobee app instead and you will never see the address you need.\n\nAfter signing in your browser will land on a page that fails to load. That is expected. Copy its full address from the address bar, then continue.",
+        "description": "Open this link in a **desktop browser** and sign in to ecobee:\n\n{authorize_url}\n\nUse a desktop browser, not your phone \u2014 on Android the link opens the ecobee app instead and you will never see the address you need.\n\nAfter signing in your browser will land on a page that fails to load. That is expected. Copy its full address from the address bar, then continue.",
         "data": {}
       },
       "code": {
@@ -23,7 +23,7 @@
     "error": {
       "state_mismatch": "That address is from an earlier sign-in attempt. Start again and use the newest link.",
       "no_code": "That address has no authorization code in it. Copy the whole address, including everything after the question mark.",
-      "invalid_grant": "ecobee rejected that code — they are single-use and expire after about a minute. Open the sign-in link above again and paste the new address; you do not need to restart setup.",
+      "invalid_grant": "ecobee rejected that code \u2014 they are single-use and expire after about a minute. Open the sign-in link above again and paste the new address; you do not need to restart setup.",
       "auth_error": "ecobee reported an error during sign-in.",
       "cannot_connect": "Signed in, but the security service could not be reached."
     },
@@ -40,25 +40,40 @@
       "init": {
         "title": "Options",
         "data": {
-          "poll_interval": "Seconds between checks",
+          "poll_interval": "Seconds between checks while disarmed",
           "exit_delay_away": "Exit delay when arming Away (seconds, blank to use the account's own setting)",
-          "exit_delay_stay": "Exit delay when arming Home (seconds, blank to use the account's own setting)"
+          "exit_delay_stay": "Exit delay when arming Home (seconds, blank to use the account's own setting)",
+          "armed_poll_interval": "Seconds between checks while armed"
         },
-        "description": "The exit delay is set by this client, not by ecobee's servers — a delay of 0 arms the system the moment you press the button."
+        "description": "An alarm is noticed no sooner than the check that finds it, so an armed house is polled more often. A live incident overrides both and polls every 5 seconds. The exit delay is set by this client, not by ecobee's servers \u2014 a delay of 0 arms the system the moment you press the button."
       }
     }
   },
   "entity": {
     "sensor": {
-      "exit_delay_away": { "name": "Exit delay (Away)" },
-      "exit_delay_stay": { "name": "Exit delay (Home)" },
-      "entry_delay_away": { "name": "Entry delay (Away)" },
-      "siren_duration_away": { "name": "Siren duration (Away)" },
-      "delayed_until": { "name": "Arming completes at" }
+      "exit_delay_away": {
+        "name": "Exit delay (Away)"
+      },
+      "exit_delay_stay": {
+        "name": "Exit delay (Home)"
+      },
+      "entry_delay_away": {
+        "name": "Entry delay (Away)"
+      },
+      "siren_duration_away": {
+        "name": "Siren duration (Away)"
+      },
+      "delayed_until": {
+        "name": "Arming completes at"
+      }
     },
     "binary_sensor": {
-      "pro_monitoring": { "name": "Professional monitoring" },
-      "pin_configured": { "name": "PIN configured" }
+      "pro_monitoring": {
+        "name": "Professional monitoring"
+      },
+      "pin_configured": {
+        "name": "PIN configured"
+      }
     }
   }
 }

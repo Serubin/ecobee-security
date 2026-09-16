@@ -15,7 +15,9 @@ from homeassistant.util import dt as dt_util
 
 from .api import ApiError, AuthFailed, CannotConnect, EcobeeSecurityApi
 from .const import (
+    CONF_ARMED_POLL_INTERVAL,
     CONF_POLL_INTERVAL,
+    DEFAULT_ARMED_POLL_INTERVAL,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
     INCIDENT_FAST_POLL_WINDOW,
@@ -43,6 +45,11 @@ class EcobeeSecurityCoordinator(DataUpdateCoordinator[Snapshot]):
         self.home_id = home_id
         self._base_interval = timedelta(
             seconds=entry.options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
+        )
+        self._armed_interval = timedelta(
+            seconds=entry.options.get(
+                CONF_ARMED_POLL_INTERVAL, DEFAULT_ARMED_POLL_INTERVAL
+            )
         )
         self._failures = 0
         self._pending_since: datetime | None = None
@@ -102,7 +109,7 @@ class EcobeeSecurityCoordinator(DataUpdateCoordinator[Snapshot]):
         install whenever a state failed to clear.
         """
         now = dt_util.utcnow()
-        interval = self._base_interval
+        interval = self._armed_interval if snapshot.is_armed else self._base_interval
 
         if snapshot.is_pending and snapshot.delayed_until is not None:
             deadline = snapshot.delayed_until + timedelta(seconds=TRANSITION_GRACE)

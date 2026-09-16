@@ -60,6 +60,11 @@ One device per home, with:
   pending arm is due to complete.
 - Diagnostic binary sensors — professional monitoring, and whether a PIN is configured.
 
+Polling is split by state: 60s while disarmed, 15s while armed, and 5s while an incident
+is live. An alarm is noticed no sooner than the check that finds it, so the armed rate is
+the one that decides how quickly a siren reaches Home Assistant. Both intervals are
+configurable from the integration's options.
+
 **Arming at the thermostat is invisible until it completes.** ecobee runs that exit delay
 locally on the panel and does not publish it, so Home Assistant shows `disarmed` for the
 whole countdown and then jumps to `armed_away`. The ecobee app behaves the same way. Only
