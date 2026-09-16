@@ -90,7 +90,9 @@ class EcobeeSecurityCoordinator(DataUpdateCoordinator[Snapshot]):
             if self._incident_since is not None
             else timedelta(seconds=MAX_BACKOFF)
         )
-        backoff = self._base_interval * min(2**self._failures, 8)
+        # The first failure keeps the base interval: a single reset must not double the
+        # gap before the alarm state is readable again.
+        backoff = self._base_interval * min(2 ** (self._failures - 1), 8)
         self.update_interval = min(backoff, cap)
 
     def _retune_interval(self, snapshot: Snapshot) -> None:

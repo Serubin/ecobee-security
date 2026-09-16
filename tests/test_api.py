@@ -399,3 +399,53 @@ async def test_a_missing_armed_state_is_rejected():
     )
     with pytest.raises(ApiError, match="armed state"):
         await api.async_get_state(HOME_ID)
+
+
+@pytest.mark.asyncio
+async def test_a_transient_reset_is_retried_once():
+    """A dropped socket must not blank the alarm entity for a whole poll cycle."""
+    import aiohttp
+
+    good = FakeResponse({"data": {"homes": [{"id": HOME_ID, "monitoring": MONITORING}]}})
+
+    class ResettingOnce(FakeSession):
+        def __init__(self):
+            super().__init__(good)
+            self.attempts = 0
+
+        def post(self, *args, **kwargs):
+            self.attempts += 1
+            if self.attempts == 1:
+                raise aiohttp.ClientError("Connection reset by peer")
+            return super().post(*args, **kwargs)
+
+    async def token():
+        return "t"
+
+    session = ResettingOnce()
+    api = EcobeeSecurityApi(session, token)
+    assert await api.async_get_state(HOME_ID) == MONITORING
+    assert session.attempts == 2
+
+
+@pytest.mark.asyncio
+async def test_a_persistent_reset_still_fails():
+    import aiohttp
+
+    class AlwaysResets(FakeSession):
+        def __init__(self):
+            super().__init__()
+            self.attempts = 0
+
+        def post(self, *args, **kwargs):
+            self.attempts += 1
+            raise aiohttp.ClientError("Connection reset by peer")
+
+    async def token():
+        return "t"
+
+    session = AlwaysResets()
+    api = EcobeeSecurityApi(session, token)
+    with pytest.raises(CannotConnect):
+        await api.async_get_state(HOME_ID)
+    assert session.attempts == 2

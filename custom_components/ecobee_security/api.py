@@ -28,6 +28,10 @@ _LOGGER = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = ClientTimeout(total=30)
 
+# The graph resets a connection now and then. One immediate retry keeps a dropped socket
+# from blanking the alarm entity for a whole poll cycle.
+TRANSIENT_RETRIES = 1
+
 
 class EcobeeSecurityError(Exception):
     """Base error."""
@@ -159,20 +163,27 @@ class EcobeeSecurityApi:
             "x-correlation-id": str(uuid.uuid4()),
         }
 
-        try:
-            async with self._session.post(
-                GRAPHQL_URL, json=body, headers=headers, timeout=REQUEST_TIMEOUT
-            ) as response:
-                self._record_server_clock(response)
-                if response.status == 401:
-                    raise AuthFailed("The security graph rejected the token")
-                if response.status >= 400:
-                    raise ApiError(f"HTTP {response.status} from the security graph")
-                payload = await response.json()
-        except TimeoutError as err:
-            raise CannotConnect("The security graph did not respond in time") from err
-        except ClientError as err:
-            raise CannotConnect(str(err)) from err
+        for attempt in range(TRANSIENT_RETRIES + 1):
+            try:
+                async with self._session.post(
+                    GRAPHQL_URL, json=body, headers=headers, timeout=REQUEST_TIMEOUT
+                ) as response:
+                    self._record_server_clock(response)
+                    if response.status == 401:
+                        raise AuthFailed("The security graph rejected the token")
+                    if response.status >= 400:
+                        raise ApiError(f"HTTP {response.status} from the security graph")
+                    payload = await response.json()
+                break
+            except TimeoutError as err:
+                last: Exception = CannotConnect("The security graph did not respond in time")
+                last.__cause__ = err
+            except ClientError as err:
+                last = CannotConnect(str(err))
+                last.__cause__ = err
+            if attempt == TRANSIENT_RETRIES:
+                raise last
+            _LOGGER.debug("Retrying %s after a transient error: %s", operation_name, last)
 
         _raise_for_errors(payload, required)
         data = payload.get("data")
