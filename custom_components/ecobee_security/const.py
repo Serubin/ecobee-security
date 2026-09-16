@@ -38,6 +38,11 @@ CONF_EXIT_DELAY_STAY: Final = "exit_delay_stay"
 DEFAULT_POLL_INTERVAL: Final = 60
 TRANSITION_POLL_INTERVAL: Final = 5
 
+# A live incident is polled fast too: the entry delay is 30s, so the base interval would
+# usually skip the countdown entirely and report a siren up to a minute late. Bounded, so
+# an incident that never clears cannot pin us at the fast rate forever.
+INCIDENT_FAST_POLL_WINDOW: Final = 900
+
 # The server drives the transition and clears delayedArmedState itself, so overrunning
 # this means it stalled. Kept clear of MAX_CLOCK_SKEW so the tolerances cannot cancel.
 TRANSITION_GRACE: Final = 60

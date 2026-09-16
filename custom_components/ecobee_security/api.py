@@ -65,7 +65,14 @@ REQUIRED_READ_FIELDS: tuple[str, ...] = (
     "status",
 )
 
+# Fields whose loss degrades diagnostics without misrepresenting the alarm are absent
+# from the set above on purpose; see the emergencyContacts case in the protocol notes.
+
 MUTATION_FIELDS: tuple[str, ...] = ("setArmedStateForHome", "home", "monitoring")
+
+# GraphQL null propagation bubbles a field error up to a non-null parent, so an error deep
+# inside one incident can null the whole list — which would read as "no alarm firing".
+SUBTREE_CRITICAL: tuple[str, ...] = ("incidents", "delayedArmedState")
 
 
 def _is_fatal(error_path: list[Any] | None, required: tuple[str, ...]) -> bool:
@@ -76,10 +83,10 @@ def _is_fatal(error_path: list[Any] | None, required: tuple[str, ...]) -> bool:
     """
     if not error_path:
         return True
-    terminal = next(
-        (part for part in reversed(error_path) if isinstance(part, str)), None
-    )
-    return terminal in required
+    segments = [part for part in error_path if isinstance(part, str)]
+    if any(segment in SUBTREE_CRITICAL for segment in segments):
+        return True
+    return (segments[-1] if segments else None) in required
 
 
 def _raise_for_errors(payload: dict[str, Any], required: tuple[str, ...]) -> None:
@@ -247,5 +254,11 @@ def _extract_monitoring(data: dict[str, Any], home_id: str) -> dict[str, Any]:
         monitoring = home.get("monitoring")
         if not isinstance(monitoring, dict):
             raise ApiError(f"Home {home_id} reported no monitoring state")
+        # Assert presence structurally: a silently dropped key would otherwise read as
+        # "not armed" or "no alarm firing" rather than as a failed read.
+        if not isinstance(monitoring.get("incidents"), list):
+            raise ApiError(f"Home {home_id} returned no incident list")
+        if not isinstance(monitoring.get("armedState"), str):
+            raise ApiError(f"Home {home_id} returned no armed state")
         return monitoring
     raise ApiError(f"Home {home_id} is not on this account")

@@ -74,12 +74,18 @@ class Incident:
     event_types: tuple[str, ...]
 
     @property
+    def is_live(self) -> bool:
+        # The feed returns only live incidents today, so status is belt-and-braces
+        # against a resolved one arriving and pinning the panel on triggered.
+        return self.status in (None, "OPEN")
+
+    @property
     def is_alerting(self) -> bool:
-        return self.level == INCIDENT_LEVEL_ALERTED
+        return self.is_live and self.level == INCIDENT_LEVEL_ALERTED
 
     @property
     def is_counting_down(self) -> bool:
-        return self.level == INCIDENT_LEVEL_REPORTED
+        return self.is_live and self.level == INCIDENT_LEVEL_REPORTED
 
 
 @dataclass(frozen=True)
@@ -193,8 +199,13 @@ def panel_state(
     # An incident outranks armedState, which does not change when the alarm fires.
     if snapshot.alerting_incident is not None:
         return PanelState.TRIGGERED, False
-    if snapshot.counting_down_incident is not None:
-        return PanelState.PENDING, False
+    if (countdown := snapshot.counting_down_incident) is not None:
+        # A countdown that outran its deadline is stuck; do not hold PENDING forever.
+        overrun = countdown.delay_until is not None and now + timedelta(
+            seconds=clock_offset or 0.0
+        ) > countdown.delay_until + timedelta(seconds=TRANSITION_GRACE)
+        if not overrun:
+            return PanelState.PENDING, False
 
     if snapshot.is_pending:
         # delayedUntil is the server's clock, so compare in the server's frame.

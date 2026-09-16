@@ -14,6 +14,7 @@ HOME_ID = "home-1"
 MONITORING = {
     "armedState": "DISARMED",
     "delayedArmedState": None,
+    "incidents": [],
     "homeMonitoringSettings": {},
 }
 
@@ -356,3 +357,45 @@ async def test_absent_features_are_treated_as_capable():
     """Not knowing is not a reason to hide a home the user can see in the app."""
     api, _ = make_api(FakeResponse({"data": {"homes": [{"id": "a", "name": "House"}]}}))
     assert (await api.async_get_homes())[0]["monitoring"] is True
+
+
+@pytest.mark.asyncio
+async def test_an_error_inside_an_incident_is_fatal():
+    """Null propagation can take the whole list with it, which reads as 'no alarm'."""
+    api, _ = make_api(
+        FakeResponse(
+            {
+                "errors": [
+                    {
+                        "message": "PermissionDenied",
+                        "path": ["homes", 0, "monitoring", "incidents", 0, "timestamp"],
+                        "extensions": {"code": "FORBIDDEN"},
+                    }
+                ],
+                "data": {"homes": [{"id": HOME_ID, "monitoring": MONITORING}]},
+            }
+        )
+    )
+    with pytest.raises(ApiError):
+        await api.async_get_state(HOME_ID)
+
+
+@pytest.mark.asyncio
+async def test_a_missing_incident_list_is_rejected():
+    """Silently absent is indistinguishable from 'no alarm firing', so refuse it."""
+    without = {k: v for k, v in MONITORING.items() if k != "incidents"}
+    api, _ = make_api(
+        FakeResponse({"data": {"homes": [{"id": HOME_ID, "monitoring": without}]}})
+    )
+    with pytest.raises(ApiError, match="incident"):
+        await api.async_get_state(HOME_ID)
+
+
+@pytest.mark.asyncio
+async def test_a_missing_armed_state_is_rejected():
+    without = {k: v for k, v in MONITORING.items() if k != "armedState"}
+    api, _ = make_api(
+        FakeResponse({"data": {"homes": [{"id": HOME_ID, "monitoring": without}]}})
+    )
+    with pytest.raises(ApiError, match="armed state"):
+        await api.async_get_state(HOME_ID)

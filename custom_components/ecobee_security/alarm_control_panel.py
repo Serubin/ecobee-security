@@ -165,10 +165,14 @@ class EcobeeSecurityPanel(EcobeeSecurityEntity, AlarmControlPanelEntity):
             )
         except EcobeeSecurityError as err:
             # The server may have acted anyway, so re-read rather than trust our own view.
-            await self.coordinator.async_request_refresh()
+            await self.coordinator.async_refresh()
             raise HomeAssistantError(
                 f"Could not confirm {target} with ecobee: {err}"
             ) from err
 
-        self.coordinator.apply_mutation_result(monitoring)
-        await self.coordinator.async_request_refresh()
+        self.coordinator.apply_mutation_result(
+            monitoring, disarmed=target == ARMED_STATE_DISARMED
+        )
+        # Undebounced: the mutation payload carries no incident list, so only a real read
+        # can confirm whether an alarm is still sounding.
+        await self.coordinator.async_refresh()

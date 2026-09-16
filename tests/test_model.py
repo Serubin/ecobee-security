@@ -272,3 +272,27 @@ def test_a_malformed_incident_does_not_break_the_snapshot():
     snap = build_snapshot(mon)
     assert snap.alerting_incident is not None
     assert snap.alerting_incident.sources == ()
+
+
+def test_a_resolved_incident_does_not_hold_the_panel_triggered():
+    mon = monitoring("ARMED_AWAY")
+    inc = incident("ALERTED")
+    inc["status"] = "DISMISSED"
+    mon["incidents"] = [inc]
+    assert panel_state(build_snapshot(mon), NOW) == (PanelState.ARMED_AWAY, False)
+
+
+def test_a_stuck_countdown_does_not_pin_the_panel_on_pending():
+    """The arming path is watchdogged; the entry-delay path must be too."""
+    mon = monitoring("ARMED_AWAY")
+    mon["incidents"] = [incident("REPORTED", delay_until="2026-09-15T20:00:30Z")]
+    snap = build_snapshot(mon)
+    assert panel_state(snap, NOW)[0] == PanelState.PENDING
+    much_later = datetime(2026, 9, 15, 21, 0, 0, tzinfo=timezone.utc)
+    assert panel_state(snap, much_later)[0] == PanelState.ARMED_AWAY
+
+
+def test_a_countdown_without_a_deadline_still_reports_pending():
+    mon = monitoring("ARMED_AWAY")
+    mon["incidents"] = [incident("REPORTED")]
+    assert panel_state(build_snapshot(mon), NOW)[0] == PanelState.PENDING

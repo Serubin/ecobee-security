@@ -30,7 +30,7 @@
     "abort": {
       "already_configured": "This home is already set up.",
       "no_homes": "This ecobee account has no homes on it.",
-      "no_security": "No home on this account has Smart Security enabled.",
+      "unknown_home": "That home is no longer on this account.",
       "wrong_account": "Those credentials are for a different ecobee account than the one this entry was set up with.",
       "reauth_successful": "Signed in again."
     }

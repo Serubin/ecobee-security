@@ -9,8 +9,9 @@ from homeassistant.core import HomeAssistant
 
 from .const import CONF_POLL_INTERVAL
 
-# An allowlist, so a key added to the entry later cannot leak by being forgotten here.
-ENTRY_KEYS_SAFE_TO_REPORT = ("home_id_present", "token_present")
+# Presence flags only: reporting whether a key is set can never leak what it holds, so a
+# key added to the entry later cannot leak by being forgotten here.
+ENTRY_KEYS_TO_REPORT = ("home_id", "token")
 
 
 async def async_get_config_entry_diagnostics(
@@ -20,8 +21,8 @@ async def async_get_config_entry_diagnostics(
     snapshot = coordinator.data
     return {
         "entry": {
-            "home_id_present": bool(entry.data.get("home_id")),
-            "token_present": bool(entry.data.get("token")),
+            f"{key}_present": bool(entry.data.get(key))
+            for key in ENTRY_KEYS_TO_REPORT
         },
         "options": {CONF_POLL_INTERVAL: entry.options.get(CONF_POLL_INTERVAL)},
         "state": {

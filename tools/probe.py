@@ -53,6 +53,7 @@ FINDINGS_ALLOWLIST = (
     "token_audience",
     "token_lifetime_seconds",
     "graphql_error_codes",
+    "home_features",
 )
 
 
@@ -164,12 +165,16 @@ async def main() -> int:
             ]
             print(f"HomesQuery errors: {findings['graphql_error_codes']}")
         homes = (homes_payload.get("data") or {}).get("homes") or []
+        findings["home_features"] = sorted(
+            {f for home in homes for f in (home.get("features") or [])}
+        )
         findings["bare_client_accepted"] = bool(homes)
         findings["home_count"] = len(homes)
         if not homes:
             print("No homes returned; cannot continue.")
             return 1
         print(f"Homes: {len(homes)}")
+        print(f"Features advertised: {findings['home_features']}")
 
         home_id = homes[0]["id"]
         state_payload, offset = await graphql(

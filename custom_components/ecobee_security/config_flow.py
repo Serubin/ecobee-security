@@ -28,6 +28,7 @@ from .const import (
     CONF_POLL_INTERVAL,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
+    FEATURE_HOME_MONITORING,
 )
 from .pkce import PasteError, build_authorize_url, extract_code, generate_verifier
 
@@ -123,9 +124,16 @@ class EcobeeSecurityConfigFlow(ConfigFlow, domain=DOMAIN):
                 },
             )
 
-        self._homes = [home for home in self._homes if home["monitoring"]]
-        if not self._homes:
-            return self.async_abort(reason="no_security")
+        # The feature value is confirmed on one account only, so a home that does not
+        # advertise it is deprioritised rather than hidden: guessing wrong here would be
+        # an unrecoverable setup failure on someone else's account.
+        if advertised := [home for home in self._homes if home["monitoring"]]:
+            self._homes = advertised
+        else:
+            _LOGGER.warning(
+                "No home advertises %s; offering all of them anyway",
+                FEATURE_HOME_MONITORING,
+            )
         if len(self._homes) == 1:
             return await self._async_create(self._homes[0])
         return await self.async_step_pick_home()
@@ -135,8 +143,10 @@ class EcobeeSecurityConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         if user_input is not None:
             home = next(
-                h for h in self._homes if h["id"] == user_input[CONF_HOME_ID]
+                (h for h in self._homes if h["id"] == user_input[CONF_HOME_ID]), None
             )
+            if home is None:
+                return self.async_abort(reason="unknown_home")
             return await self._async_create(home)
 
         return self.async_show_form(

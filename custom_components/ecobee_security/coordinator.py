@@ -1,4 +1,4 @@
-"""Polls the security graph, faster while a transition is pending."""
+"""Polls the security graph, faster while an arm is pending or an incident is live."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from .const import (
     CONF_POLL_INTERVAL,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
+    INCIDENT_FAST_POLL_WINDOW,
     TRANSITION_GRACE,
     TRANSITION_POLL_INTERVAL,
 )
@@ -45,6 +46,8 @@ class EcobeeSecurityCoordinator(DataUpdateCoordinator[Snapshot]):
         )
         self._failures = 0
         self._pending_since: datetime | None = None
+        self._incident_since: datetime | None = None
+        self._incident_ids: frozenset[str | None] = frozenset()
         super().__init__(
             hass,
             _LOGGER,
@@ -77,26 +80,54 @@ class EcobeeSecurityCoordinator(DataUpdateCoordinator[Snapshot]):
         return snapshot
 
     def _back_off(self) -> None:
-        """Do not keep hammering the graph at the transition rate while it is failing."""
+        """Slow down while the graph is failing, but not while an alarm may be sounding.
+
+        Incidents are the only channel that reports a siren, so politeness loses to
+        knowing about it.
+        """
+        cap = (
+            timedelta(seconds=TRANSITION_POLL_INTERVAL * 4)
+            if self._incident_since is not None
+            else timedelta(seconds=MAX_BACKOFF)
+        )
         backoff = self._base_interval * min(2**self._failures, 8)
-        self.update_interval = min(backoff, timedelta(seconds=MAX_BACKOFF))
+        self.update_interval = min(backoff, cap)
 
     def _retune_interval(self, snapshot: Snapshot) -> None:
-        """Poll fast through an exit delay, but never indefinitely.
+        """Poll fast through an exit delay or a live incident, but never indefinitely.
 
         An unbounded fast poll would hammer a third party's production graph from every
-        install whenever a pending state failed to clear.
+        install whenever a state failed to clear.
         """
+        now = dt_util.utcnow()
         interval = self._base_interval
+
         if snapshot.is_pending and snapshot.delayed_until is not None:
             deadline = snapshot.delayed_until + timedelta(seconds=TRANSITION_GRACE)
-            if dt_util.utcnow() < deadline:
+            if now < deadline:
                 interval = timedelta(seconds=TRANSITION_POLL_INTERVAL)
+
+        # Keyed on identity, not mere presence: a new incident opening while an old one
+        # is still listed must restart the window rather than inherit an expired one.
+        ids = frozenset(inc.incident_id for inc in snapshot.incidents)
+        if ids != self._incident_ids:
+            self._incident_ids = ids
+            self._incident_since = now if ids else None
+        if self._incident_since is not None:
+            if now < self._incident_since + timedelta(seconds=INCIDENT_FAST_POLL_WINDOW):
+                interval = timedelta(seconds=TRANSITION_POLL_INTERVAL)
+
         if interval != self.update_interval:
             self.update_interval = interval
 
-    def apply_mutation_result(self, monitoring: dict[str, Any]) -> None:
-        """Adopt the state a mutation reported, keeping settings it does not carry."""
+    def apply_mutation_result(
+        self, monitoring: dict[str, Any], disarmed: bool = False
+    ) -> None:
+        """Adopt the state a mutation reported, keeping the settings it does not carry.
+
+        Incidents are live state rather than settings: carrying them across a disarm
+        would hold the panel on `triggered` after the siren was silenced.
+        """
         snapshot = build_snapshot(monitoring)
         if self.data is not None:
             snapshot = replace(
@@ -105,7 +136,7 @@ class EcobeeSecurityCoordinator(DataUpdateCoordinator[Snapshot]):
                 pro_monitoring=self.data.pro_monitoring,
                 away=self.data.away,
                 stay=self.data.stay,
-                incidents=self.data.incidents,
+                incidents=() if disarmed else self.data.incidents,
             )
         # Retune first: async_set_updated_data reschedules using the current interval.
         self._retune_interval(snapshot)
