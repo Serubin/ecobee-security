@@ -73,3 +73,11 @@ def test_paste_without_a_state_is_rejected():
     """We always send state, so its absence means the paste is not from our flow."""
     with pytest.raises(PasteError, match="state_mismatch"):
         extract_code(f"{REDIRECT}?code=abc123", "state-1")
+
+
+def test_the_same_link_survives_a_retry():
+    """An expired code must not cost the user the whole flow, so the verifier is reused."""
+    verifier, state = "keep-me", "state-1"
+    first = build_authorize_url(verifier, state)
+    assert build_authorize_url(verifier, state) == first
+    assert extract_code(f"{REDIRECT}?code=second-try&state={state}", state) == "second-try"

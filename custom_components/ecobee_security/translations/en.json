@@ -23,7 +23,7 @@
     "error": {
       "state_mismatch": "That address is from an earlier sign-in attempt. Start again and use the newest link.",
       "no_code": "That address has no authorization code in it. Copy the whole address, including everything after the question mark.",
-      "invalid_grant": "ecobee rejected the code. They expire quickly — start again and paste the address promptly.",
+      "invalid_grant": "ecobee rejected that code — they are single-use and expire after about a minute. Open the sign-in link above again and paste the new address; you do not need to restart setup.",
       "auth_error": "ecobee reported an error during sign-in.",
       "cannot_connect": "Signed in, but the security service could not be reached."
     },

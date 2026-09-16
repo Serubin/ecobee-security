@@ -76,9 +76,12 @@ The config flow gives you an ecobee sign-in link. **Open it in a desktop browser
 only callback ecobee's OAuth client accepts is an Android App Link, so on a phone the link
 opens the ecobee app and you never see the address the flow needs.
 
-After signing in, your browser lands on a page that fails to load. That is expected — copy
-its full address out of the address bar and paste it back into the flow. Authorization
-codes expire quickly, so do it promptly.
+After signing in, your browser lands on a page that fails to load. That is expected — no
+app is there to catch the redirect. Copy its full address out of the address bar and paste
+it back into the flow.
+
+Codes are single-use and expire after about a minute. If you are too slow, the flow says
+so and you can just open the same sign-in link again — setup does not restart.
 
 ## Development
 
