@@ -6,6 +6,7 @@ to Home Assistant and the user pastes the redirected URL back into the config fl
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from homeassistant.helpers.config_entry_oauth2_flow import LocalOAuth2Implementation
@@ -47,8 +48,8 @@ class EcobeeOAuth2Implementation(LocalOAuth2Implementation):
         return {"scope": SCOPE, "audience": AUDIENCE}
 
     async def async_exchange_code(self, code: str, verifier: str) -> dict[str, Any]:
-        """Trade an authorization code for a token bundle."""
-        return await self._token_request(
+        """Trade an authorization code for a token bundle OAuth2Session can consume."""
+        token = await self._token_request(
             {
                 "grant_type": "authorization_code",
                 "code": code,
@@ -56,3 +57,13 @@ class EcobeeOAuth2Implementation(LocalOAuth2Implementation):
                 "code_verifier": verifier,
             }
         )
+        return with_expiry(token)
+
+
+def with_expiry(token: dict[str, Any]) -> dict[str, Any]:
+    """Stamp the absolute expiry HA stores but only its own flow handler adds.
+
+    Without it OAuth2Session raises KeyError on the first refresh check.
+    """
+    expires_in = int(token.get("expires_in", 0))
+    return {**token, "expires_in": expires_in, "expires_at": time.time() + expires_in}

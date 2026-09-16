@@ -21,6 +21,13 @@ type EcobeeSecurityConfigEntry = ConfigEntry[EcobeeSecurityCoordinator]
 async def async_setup_entry(
     hass: HomeAssistant, entry: EcobeeSecurityConfigEntry
 ) -> bool:
+    if "expires_at" not in (entry.data.get("token") or {}):
+        # Stored by a build that omitted it; expired forces a refresh on first use.
+        token = {**entry.data["token"], "expires_in": 0, "expires_at": 0}
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, "token": token}
+        )
+
     session = config_entry_oauth2_flow.OAuth2Session(
         hass, entry, EcobeeOAuth2Implementation(hass)
     )
