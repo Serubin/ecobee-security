@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sign in to ecobee",
+        "description": "Open this link in a **desktop browser** and sign in to ecobee:\n\n{authorize_url}\n\nUse a desktop browser, not your phone — on Android the link opens the ecobee app instead and you will never see the address you need.\n\nAfter signing in your browser will land on a page that fails to load. That is expected. Copy its full address from the address bar, then continue.",
+        "data": {}
+      },
+      "code": {
+        "title": "Paste the address you landed on",
+        "description": "Paste the full address of the page you were sent to after signing in. It starts with https://auth.ecobee.com/android/ and contains a `code=` value.\n\nIf you need the sign-in link again: {authorize_url}",
+        "data": {
+          "redirect_url": "Redirected address"
+        }
+      },
+      "pick_home": {
+        "title": "Choose a home",
+        "data": {
+          "home_id": "Home"
+        }
+      }
+    },
+    "error": {
+      "state_mismatch": "That address is from an earlier sign-in attempt. Start again and use the newest link.",
+      "no_code": "That address has no authorization code in it. Copy the whole address, including everything after the question mark.",
+      "invalid_grant": "ecobee rejected the code. They expire quickly — start again and paste the address promptly.",
+      "auth_error": "ecobee reported an error during sign-in.",
+      "cannot_connect": "Signed in, but the security service could not be reached."
+    },
+    "abort": {
+      "already_configured": "This home is already set up.",
+      "no_homes": "This ecobee account has no homes on it.",
+      "no_security": "No home on this account has Smart Security enabled.",
+      "wrong_account": "Those credentials are for a different ecobee account than the one this entry was set up with.",
+      "reauth_successful": "Signed in again."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "poll_interval": "Seconds between checks",
+          "exit_delay_away": "Exit delay when arming Away (seconds, blank to use the account's own setting)",
+          "exit_delay_stay": "Exit delay when arming Home (seconds, blank to use the account's own setting)"
+        },
+        "description": "The exit delay is set by this client, not by ecobee's servers — a delay of 0 arms the system the moment you press the button."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "exit_delay_away": { "name": "Exit delay (Away)" },
+      "exit_delay_stay": { "name": "Exit delay (Home)" },
+      "entry_delay_away": { "name": "Entry delay (Away)" },
+      "siren_duration_away": { "name": "Siren duration (Away)" },
+      "delayed_until": { "name": "Arming completes at" }
+    },
+    "binary_sensor": {
+      "pro_monitoring": { "name": "Professional monitoring" },
+      "pin_configured": { "name": "PIN configured" }
+    }
+  }
+}

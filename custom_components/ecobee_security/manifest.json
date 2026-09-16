@@ -1,0 +1,14 @@
+{
+  "domain": "ecobee_security",
+  "name": "ecobee Smart Security",
+  "version": "0.1.0",
+  "documentation": "https://github.com/serubin/ecobee-security",
+  "issue_tracker": "https://github.com/serubin/ecobee-security/issues",
+  "codeowners": [
+    "@serubin"
+  ],
+  "config_flow": true,
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "requirements": []
+}
